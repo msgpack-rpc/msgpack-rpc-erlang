@@ -1,9 +1,9 @@
-{application, erl_msgpack,
+{application, msgpack_rpc,
  [{description, "MessagePack RPC client/server suite"},
-  {vsn, "0.0.2"},
+  {vsn, "0.0.3"},
   {modules, 
    [gen_msgpack_rpc, gen_msgpack_rpc_srv,
-    msgpack, msgpack_util,
+    msgpack_util,
     mprc, mprc_tcp, mprc_udp,
     mprs, mprs_tcp, mprs_udp
    ]

@@ -65,7 +65,7 @@ conn_test()->
     ?assert(is_pid(Pid)),
 
     ok = mprc:start(),
-    Arr = lists:seq(1,200), % we need more
+    Arr = lists:seq(1,121), % we need more
     MPRCs = lists:map(fun(_)-> {ok,S} = mprc:connect(localhost,9199,[]), S end, Arr),
 
     lists:map(fun(MPRC)->
