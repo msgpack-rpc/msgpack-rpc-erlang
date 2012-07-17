@@ -68,8 +68,8 @@ connect(Address, Port, Options)->
 
 % @doc synchronous calls
 % when method 'Method' doesn't exist in server implementation,
-% it returns {error, {<<"no such method">>, nil}}
-% user func error => {error, {<<"unexpected error">>, nil}}
+% it returns {error, {&lt;&lt;"no such method">>, nil}}
+% user func error => {error, {&lt;&lt;"unexpected error">>, nil}}
 % @end
 -spec call(mprc(), Method::atom(), Argv::list()) -> {term(), mprc()} | {error, {atom(), any()}}.
 call(#mprc{transport=tcp}=MPRC, Method, Argv) when is_atom(Method), is_list(Argv) ->
