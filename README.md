@@ -32,8 +32,6 @@ GNU Make, Erlang, (optional)MessagePack-RPC/C++
 -- what if happens when badarg/noproc/bad_clause, and exceptions.
 -- check Msgpack-RPC spec of error handling
 - crosslang test
--- Ruby: msgpack-rpc 0.4.5 can't access while 0.4.4 works
--- Python: make msgpackrpc on PyPI
 - coverage 100%
 - UDS transport
 - SCTP/SSL/zip and more...
