@@ -20,12 +20,17 @@ start_stop_test()->
     {ok,S} = mprc:connect(localhost,9199,[]),
 
     {Ret, MPRC0} = mprc:call(S, hello, [<<"hello">>]), 
-    ?debugVal(Ret),
-    ?assertEqual([<<"ok">>,<<"hello">>], Ret),
-    {Ret0, _MPRC1} = mprc:call(MPRC0, add, [230,4]),
-    ?assertEqual(234, Ret0),
-    %A=2937845, B=238945029038453490, C=A+B,
-    
+    % TODO: fix
+    ?assertEqual({ok, [<<"ok">>,<<"hello">>]}, Ret),
+
+    mprc:notify(MPRC0, hello, [hoge]),
+
+    {Ret0, MPRC1} = mprc:call(MPRC0, add, [230,4]),
+    ?assertEqual({ok, 234}, Ret0),
+
+    {Ret1, _} = mprc:call(MPRC1, no_method, []),
+
+    ?debugVal(Ret1),
     ?assertEqual(ok, mprc:close(S)),
     ok = mprc:stop(),
 
