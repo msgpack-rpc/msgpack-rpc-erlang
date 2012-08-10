@@ -98,7 +98,7 @@ handle_call({join, CallID}, From, State = #state{session=Sessions0}) ->
 	    {noreply, State#state{session=[{CallID,{waiting,From}}|Sessions]}};
 
 	{value, {CallID, {result, Term}}, Sessions} ->
-	    {reply, {ok, Term}, State#state{session=Sessions}};
+	    {reply, Term, State#state{session=Sessions}};
 
 	{value, {CallID, {waiting, From}}, _} ->
 	    {reply, {error, waiting}, State};
@@ -158,7 +158,7 @@ handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Se
 	    {stop, {error, Reason}, State};
 	{Term, Remain} ->
 	    [?MP_TYPE_RESPONSE, CallID, ResCode, Result] = Term,
-	    Retval = case ResCode of nil -> {ok, Result};
+	    Retval = case ResCode of nil ->   {ok, Result};
                                      Error -> {error, Error} end,
 
 	    case lists:keytake(CallID, 1, Sessions0) of

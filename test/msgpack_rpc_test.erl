@@ -16,26 +16,21 @@ start_stop_test()->
 				    cowboy_tcp_transport, [{port, 9199}],
 				    msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
 
-    ok = mprc:start(),
-    {ok,S} = mprc:connect(localhost,9199,[]),
-
-    {Ret, MPRC0} = mprc:call(S, hello, [<<"hello">>]), 
-    % TODO: fix
-    ?assertEqual({ok, <<"hello">>}, Ret),
-
-    mprc:notify(MPRC0, hello, [hoge]),
-
-    {Ret0, MPRC1} = mprc:call(MPRC0, add, [230,4]),
-    ?assertEqual({ok, 234}, Ret0),
-
-    {_Ret1, _} = mprc:call(MPRC1, no_method, []),
-
-    ?assertEqual(ok, mprc:close(S)),
-    ok = mprc:stop(),
-
     {ok, Pid} = msgpack_rpc_client:connect(tcp, "localhost", 9199, []),
     Reply = msgpack_rpc_client:call(Pid, hello, [<<"hello">>]),
     ?assertEqual({ok, <<"hello">>}, Reply),
+
+    R = msgpack_rpc_client:call(Pid, add, [12, 23]),
+    ?assertEqual({ok, 35}, R),
+
+    ok = msgpack_rpc_client:notify(Pid, hello, [23]),
+
+    {ok, CallID0} = msgpack_rpc_client:call_async(Pid, add, [-23, 23]),
+    {ok, CallID1} = msgpack_rpc_client:call_async(Pid, add, [-23, 46]),
+
+    ?assertEqual({ok, 23}, msgpack_rpc_client:join(Pid, CallID1)),
+    ?assertEqual({ok, 0}, msgpack_rpc_client:join(Pid, CallID0)),
+    
     ok = msgpack_rpc_client:close(Pid),
 
     ok = cowboy:stop_listener(testlistener),
