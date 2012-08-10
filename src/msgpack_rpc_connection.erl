@@ -66,7 +66,7 @@ init(Argv) ->
     Opts = proplists:get_value(opts,   Argv, [binary,{packet,raw},{active,once}]),
     {ok, Socket} = Transport:connect(IP, Port, Opts),
     ok = Transport:controlling_process(Socket, self()),
-    {ok, #state{connection=Socket, transport=Transport, session = dict:new()}}.
+    {ok, #state{connection=Socket, transport=Transport}}.
 
 %%--------------------------------------------------------------------
 %% @private
