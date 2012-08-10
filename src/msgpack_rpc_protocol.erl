@@ -54,7 +54,8 @@ init(ListenerPid, Socket, Transport, Opts) ->
 	Module ->
 	    ok = cowboy:accept_ack(ListenerPid),
     	    ok = Transport:controlling_process(Socket, self()),
-	    ok = Transport:setopts(Socket, [{active, once}]),
+	    % ok = Transport:setopts(Socket, [{active, once}]),
+
 	    wait_request(#state{listener=ListenerPid, socket=Socket, transport=Transport,
 				max_keepalive=MaxKeepalive, max_line_length=MaxLineLength,
 				timeout=Timeout, module=Module })
@@ -63,9 +64,9 @@ init(ListenerPid, Socket, Transport, Opts) ->
 -spec wait_request(#state{}) -> ok.
 wait_request(State=#state{socket=Socket, transport=Transport,
 			  timeout=T, buffer=Buffer}) ->
+    ok = Transport:setopts(Socket, [{active, once}]),
     receive
 	{tcp, Socket, Data} ->
-	    ok = Transport:setopts(Socket, [{active, once}]),
 	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
 	{tcp_error, Socket, _Reason} ->
 	    terminate(State);
@@ -73,12 +74,12 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 	    terminate(State);
 
 	{reply, Binary}->
-	    _Result = Transport:send(Socket, Binary),
+	    ok = Transport:send(Socket, Binary),
+	    wait_request(State);
+
+	Other ->
+	    ?debugVal(Other),
 	    wait_request(State)
-	    %%;
-	%% Other ->
-	%%     ?debugVal(Other),
-	%%     wait_request(State)
 
     after T ->
 	    case byte_size(Buffer) > 0 of
@@ -91,14 +92,13 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 
 parse_request(State=#state{buffer=Buffer, module=Module}) ->
     case msgpack:unpack(Buffer) of
-	{[?MP_TYPE_NOTIFY,M,Argv], Remain} ->
-	    spawn_notify_handler(Module, M, Argv),
-	    parse_request(State#state{buffer=Remain});
 	{[?MP_TYPE_REQUEST,CallID,M,Argv], Remain} ->
 	    spawn_request_handler(CallID, Module, M, Argv),
 	    parse_request(State#state{buffer=Remain});
+	{[?MP_TYPE_NOTIFY,M,Argv], Remain} ->
+	    spawn_notify_handler(Module, M, Argv),
+	    parse_request(State#state{buffer=Remain});
 	{error, incomplete} ->
-	    ?debugHere,
 	    wait_request(State);
 	{error, Reason} ->
 	    ?debugVal(Reason),
@@ -107,11 +107,9 @@ parse_request(State=#state{buffer=Buffer, module=Module}) ->
     end.
 
 spawn_notify_handler(Module, M, Argv)->
-	    ?debugHere,
     spawn(fun()->
 		  Method = binary_to_existing_atom(M, latin1),
 		  try
-		      ?debugVal(Method),
 		      erlang:apply(Module, Method, Argv)
 		  catch
 		      Class:Throw ->
@@ -122,12 +120,13 @@ spawn_notify_handler(Module, M, Argv)->
 
 spawn_request_handler(CallID, Module, M, Argv)->
     Pid = self(),
-    ?debugVal(Pid),
     F = fun()->
 		Method = binary_to_existing_atom(M, latin1),
 		Prefix = [?MP_TYPE_RESPONSE, CallID],
 		try
 		    Result = erlang:apply(Module,Method,Argv),
+		    %% ?debugVal({Method, Argv}),
+		    %% ?debugVal(Result),
 		    Pid ! {reply, msgpack:pack(Prefix ++ [nil, Result])}
 		catch
 		    Class:Throw ->

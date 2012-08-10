@@ -9,9 +9,9 @@
 -module(msgpack_rpc_client).
 
 -include("msgpack_rpc.hrl").
-
--export([start_link/4,
-	 connect/4, call/3, call_async/3, join/2, notify/3]).
+-include_lib("eunit/include/eunit.hrl").
+-export([start_link/4, connect/4, close/1,
+	 call/3, call_async/3, join/2, notify/3]).
 
 -type type()   :: tcp. % | udp | sctp.
 -type method() :: atom().
@@ -25,9 +25,13 @@ start_link(tcp, IP, Port, Opts)->
 start_link(_Type, _IP, _Port, _Opts)->
     {error, no_transport}.
 
--spec connect(atom(), inet:ip_address(), inet:port_number(), [proplists:property()]) -> {ok, pid()} | {error, any()}.
-connect(Name, IP, Port, Opts)->
-    start_link(Name, IP, Port, Opts).
+-spec connect(type(), inet:ip_address(), inet:port_number(), [proplists:property()]) -> {ok, pid()} | {error, any()}.
+connect(Type, IP, Port, Opts)->
+    start_link(Type, IP, Port, Opts).
+
+-spec close(pid())-> ok.
+close(Pid)->
+    gen_server:call(Pid, close).
 
 -spec call(pid(), method(), argv()) -> {ok, msgpack:msgpack_term()} | {error, any()}.
 call(Pid, Method, Argv)->
@@ -37,8 +41,9 @@ call(Pid, Method, Argv)->
     end.
 
 -spec call_async(pid(), method(), argv()) -> {ok, callid()} | {error, any()}.
-call_async(Pid, Method, Argv) when is_atom(Method)->
-    gen_server:call(Pid, {call_async, Method, Argv}).
+call_async(Pid, Method, Argv)->
+    BinMethod = atom_to_binary(Method, latin1),
+    gen_server:call(Pid, {call_async, BinMethod, Argv}).
 
 -spec join(pid(), callid()) -> {ok, msgpack:msgpack_term()} | {error, any()}.
 join(Pid, CallID)->
@@ -46,4 +51,5 @@ join(Pid, CallID)->
 
 -spec notify(pid(), method(), argv()) -> ok. % never fails
 notify(Pid, Method, Argv)->
-    gen_server:cast(Pid, {notify, Method, Argv}).
+    BinMethod = atom_to_binary(Method, latin1),
+    gen_server:cast(Pid, {notify, BinMethod, Argv}).

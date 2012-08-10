@@ -13,6 +13,7 @@
 %% API
 -export([start_link/1]).
 
+-include_lib("eunit/include/eunit.hrl").
 -include("msgpack_rpc.hrl").
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -41,7 +42,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Argv) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Argv, []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, Argv, [{debug, [log,trace]}]).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -62,7 +63,7 @@ init(Argv) ->
     Transport = proplists:get_value(transport, Argv, cowboy_tcp_transport),
     IP   = proplists:get_value(ipaddr, Argv, localhost),
     Port = proplists:get_value(port,   Argv, 9199),
-    Opts = proplists:get_value(opts,   Argv, []),
+    Opts = proplists:get_value(opts,   Argv, [binary,{packet,raw},{active,once}]),
     {ok, Socket} = Transport:connect(IP, Port, Opts),
     ok = Transport:controlling_process(Socket, self()),
     {ok, #state{connection=Socket, transport=Transport, session = dict:new()}}.
@@ -86,6 +87,7 @@ handle_call({call_async, Method, Argv}, _From,
     CallID = Count,
     Binary = msgpack:pack([?MP_TYPE_REQUEST, CallID, Method, Argv]),
     ok=Transport:send(Socket, Binary),
+    ok=Transport:setopts(Socket, [{active,once}]),
     {reply, {ok, CallID}, State#state{counter=Count+1, session=[{CallID,none}|Sessions]}};
 
 handle_call({join, CallID}, From, State = #state{session=Sessions0}) ->
@@ -107,6 +109,9 @@ handle_call({join, CallID}, From, State = #state{session=Sessions0}) ->
 	_ -> % unexpected error
 	    {noreply, State}
     end;
+
+handle_call(close, _From, State) ->
+    {stop, normal, ok, State};
 
 handle_call(_Request, _From, State) ->
     {reply, {error, badevent}, State}.
@@ -142,8 +147,10 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 
     % when transport=cowboy_tcp_transport, other 
-handle_info({tcp, _Socket, Binary}, State = #state{session=Sessions0, buffer=Buf}) ->
+handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Sessions0, buffer=Buf}) ->
     NewBuffer = <<Buf/binary, Binary/binary>>,
+    ok=Transport:setopts(Socket, [{active,once}]),
+
     case msgpack:unpack(NewBuffer) of
 	{error, imcomplete} -> 
 	    {noreply, State#state{buffer=NewBuffer}};
@@ -165,7 +172,9 @@ handle_info({tcp, _Socket, Binary}, State = #state{session=Sessions0, buffer=Buf
 	    end
     end;
 
-handle_info(_Info, State) ->
+handle_info(_Info, State = #state{connection=Socket,transport=Transport}) ->
+    ?debugVal(_Info),
+    ok=Transport:setopts(Socket, [{active,once}]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------

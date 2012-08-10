@@ -4,8 +4,8 @@
 
 -export([hello/1, add/2]).
 
-hello(Argv)->
-    [<<"ok">>, Argv].
+hello(_Argv)->
+    <<"hello">>.
 
 add(A, B)-> A+B.
     
@@ -21,20 +21,22 @@ start_stop_test()->
 
     {Ret, MPRC0} = mprc:call(S, hello, [<<"hello">>]), 
     % TODO: fix
-    ?assertEqual({ok, [<<"ok">>,<<"hello">>]}, Ret),
+    ?assertEqual({ok, <<"hello">>}, Ret),
 
     mprc:notify(MPRC0, hello, [hoge]),
 
     {Ret0, MPRC1} = mprc:call(MPRC0, add, [230,4]),
     ?assertEqual({ok, 234}, Ret0),
 
-    {Ret1, _} = mprc:call(MPRC1, no_method, []),
+    {_Ret1, _} = mprc:call(MPRC1, no_method, []),
 
-    ?debugVal(Ret1),
     ?assertEqual(ok, mprc:close(S)),
     ok = mprc:stop(),
 
+    {ok, Pid} = msgpack_rpc_client:connect(tcp, "localhost", 9199, []),
+    Reply = msgpack_rpc_client:call(Pid, hello, [<<"hello">>]),
+    ?assertEqual({ok, <<"hello">>}, Reply),
+    ok = msgpack_rpc_client:close(Pid),
 
     ok = cowboy:stop_listener(testlistener),
-    ?debugHere,
     ok = application:stop(cowboy).
