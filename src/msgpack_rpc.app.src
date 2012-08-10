@@ -1,6 +1,6 @@
 {application, msgpack_rpc,
  [{description, "MessagePack RPC client/server suite"},
-  {vsn, "0.0.3"},
+  {vsn, "0.0.4"},
   {modules, 
    [gen_msgpack_rpc, gen_msgpack_rpc_srv,
     msgpack_util,
