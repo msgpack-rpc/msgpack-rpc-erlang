@@ -162,7 +162,9 @@ handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Se
 	{Term, Remain} ->
 	    [?MP_TYPE_RESPONSE, CallID, ResCode, Result] = Term,
 	    Retval = case ResCode of nil ->   {ok, Result};
-                                     Error -> {error, Error} end,
+                                     Error -> {error,
+					       msgpack_rpc_protocol:binary2known_error(Error)}
+		     end,
 
 	    case lists:keytake(CallID, 1, Sessions0) of
 		false -> {noreply, State};

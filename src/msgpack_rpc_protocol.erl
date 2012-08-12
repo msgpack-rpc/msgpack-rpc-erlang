@@ -12,6 +12,8 @@
 -export([start_link/4]). %% API.
 -export([init/4, parse_request/1]). %% FSM.
 
+-export([error2binary/1, binary2known_error/1]).
+
 -include("msgpack_rpc.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
@@ -129,6 +131,11 @@ spawn_request_handler(CallID, Module, M, Argv)->
 		    %% ?debugVal(Result),
 		    Pid ! {reply, msgpack:pack(Prefix ++ [nil, Result])}
 		catch
+		    error:Reason ->
+			error_logger:error_msg("no such method: ~p", [Method]),
+			ReplyBin = msgpack:pack(Prefix ++ [error2binary(Reason), nil]),
+			Pid ! {reply, ReplyBin};
+
 		    Class:Throw ->
 			Error = lists:flatten(io_lib:format("~p:~p", [Class, Throw])),
 			error_logger:error_msg("(~p)~p", [self(), Error]),
@@ -143,36 +150,17 @@ spawn_request_handler(CallID, Module, M, Argv)->
 	end,
     spawn(F).
 
-%% -spec handler_call(any(), #http_req{}, #state{}, any()) -> ok.
-%% handler_call(HandlerState, Req, State=#state{handler={Handler, Opts}},
-%% 		Message) ->
-%% 	try Handler:info(Message, Req, HandlerState) of
-%% 		{ok, Req2, HandlerState2} ->
-%% 			terminate_request(HandlerState2, Req2, State);
-%% 		{loop, Req2, HandlerState2} ->
-%% 			handler_before_loop(HandlerState2, Req2, State);
-%% 		{loop, Req2, HandlerState2, hibernate} ->
-%% 			handler_before_loop(HandlerState2, Req2,
-%% 				State#state{hibernate=true})
-%% 	catch Class:Reason ->
-%% 		PLReq = lists:zip(record_info(fields, http_req), tl(tuple_to_list(Req))),
-%% 		error_logger:error_msg(
-%% 			"** Handler ~p terminating in info/3~n"
-%% 			"   for the reason ~p:~p~n"
-%% 			"** Options were ~p~n** Handler state was ~p~n"
-%% 			"** Request was ~p~n** Stacktrace: ~p~n~n",
-%% 			[Handler, Class, Reason, Opts,
-%% 			 HandlerState, PLReq, erlang:get_stacktrace()]),
-%% 		handler_terminate(HandlerState, Req, State),
-%% 		error_terminate(500, State)
-%% 	end.
-
 -spec terminate(#state{}) -> ok.
 terminate(#state{socket=Socket, transport=Transport}) ->
 	Transport:close(Socket),
 	ok.
 
-%% Internal.
+-spec error2binary(atom())->binary().
+error2binary(undef) -> <<"undef">>.
+
+-spec binary2known_error(term())->atom() | term().
+binary2known_error(<<"undef">>)->undef;
+binary2known_error(Term) -> Term.
 
 -ifdef(TEST).
 

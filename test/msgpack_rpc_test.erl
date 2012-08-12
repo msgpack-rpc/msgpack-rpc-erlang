@@ -30,6 +30,11 @@ start_stop_test()->
 
     {ok, CallID1} = msgpack_rpc_client:call_async(Pid, add, [-23, 46]),
     ?assertEqual({ok, 23}, msgpack_rpc_client:join(Pid, CallID1)),
+
+    % wrong arity, wrong function
+    {error, undef} = msgpack_rpc_client:call(Pid, add, [-23]),
+    {error, undef} = msgpack_rpc_client:call(Pid, imaginary, []),
+
     ok = msgpack_rpc_client:close(Pid),
 
     ok = cowboy:stop_listener(testlistener),
