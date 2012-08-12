@@ -26,11 +26,10 @@ start_stop_test()->
     ok = msgpack_rpc_client:notify(Pid, hello, [23]),
 
     {ok, CallID0} = msgpack_rpc_client:call_async(Pid, add, [-23, 23]),
-    {ok, CallID1} = msgpack_rpc_client:call_async(Pid, add, [-23, 46]),
-
-    ?assertEqual({ok, 23}, msgpack_rpc_client:join(Pid, CallID1)),
     ?assertEqual({ok, 0}, msgpack_rpc_client:join(Pid, CallID0)),
-    
+
+    {ok, CallID1} = msgpack_rpc_client:call_async(Pid, add, [-23, 46]),
+    ?assertEqual({ok, 23}, msgpack_rpc_client:join(Pid, CallID1)),
     ok = msgpack_rpc_client:close(Pid),
 
     ok = cowboy:stop_listener(testlistener),
