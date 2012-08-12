@@ -2,115 +2,103 @@
 
 -import(msgpack, [pack/1, unpack/1]).
 
+-define(TESTPORT, 65123).
+
 -include_lib("eunit/include/eunit.hrl").
 
-msgpack_rpc_props_test() ->
-    {timeout,10000, ?_assertEqual([],proper:module(msgpack_rpc_props))}.
+% this module is also a test server
+-export([add/2, id/1]).
 
-unpack_test_() ->
-    [
-        {"not binary",
-            ?_assertEqual({error, {badarg, []}}, unpack([]))},
+%% msgpack_rpc_props_test_() ->
+%%     {timeout,10000, ?_assertEqual([],proper:module(msgpack_rpc_props))}.
 
-        {"incomplete: null binary",
-            ?_assertEqual({error, incomplete}, unpack(<<>>))},
+add(A, B)->  A+B.
 
-        {"incomplete: unknown binary",
-            ?_assertEqual({error, incomplete}, unpack(<<16#DA>>))}
+id(X) -> X.
+
+setup()->
+%    ?debugVal(setup),
+    ok = application:start(cowboy),
+    {ok, _} = cowboy:start_listener(testlistener, 3,
+				    cowboy_tcp_transport, [{port, ?TESTPORT}],
+				    msgpack_rpc_protocol, [{module, ?MODULE}]),
+    ok.
+
+teardown(_)->
+%    ?debugVal(teardown),
+    ok = cowboy:stop_listener(testlistener),
+    ok = application:stop(cowboy),
+    ok.
+
+generate_id_data()->
+    [true, false, nil,
+     0, 1, 2, 123, 512, 1230, 678908, 16#FFFFFFFFFF,
+     -1, -23, -512, -1230, -567898, -16#FFFFFFFFFF,
+     -16#80000001,
+     123.123, -234.4355, 1.0e-34, 1.0e64,
+     [23, 234, 0.23],
+     <<"hogehoge">>, <<"243546rf7g68h798j", 0, 23, 255>>,
+     <<"hoasfdafdas][">>,
+     [0,42, <<"sum">>, [1,2]], [1,42, nil, [3]],
+     -234, -40000, -16#10000000, -16#100000000,
+     42
     ].
 
-array_test_()->
-    [
-        {"length 16",
-            fun() ->
-                    List = lists:seq(0, 16),
-                    Binary = pack(List),
-                    ?assertEqual({List, <<>>}, unpack(Binary))
-            end},
-        {"length 32",
-            fun() ->
-                    List = lists:seq(0, 16#010000),
-                    Binary = pack(List),
-                    ?assertEqual({List, <<>>}, unpack(Binary))
-            end},
-        {"empty",
-            fun() ->
-                    EmptyList = [],
-                    Binary = pack(EmptyList),
-                    ?assertEqual({EmptyList, <<>>}, unpack(Binary))
-            end}
-    ].
+msgpack_rpc_server_test_()->
+    {timeout, 10000,
+     {setup, fun setup/0, fun teardown/1,
+      [
+       {"RPC add",
+	{setup,
+	 fun()-> msgpack_rpc_client:connect(tcp, "localhost", ?TESTPORT, []) end,
+	 fun({ok, Conn})-> ok = msgpack_rpc_client:close(Conn) end,
+	 fun({ok, Conn})->
+		 [ ?_assertEqual({ok, X}, msgpack_rpc_client:call(Conn, id, [X]))
+		   || X <- generate_id_data() ]
+		     ++
+                 [
+		  ?_assertEqual({ok, 23}, msgpack_rpc_client:call(Conn, add, [10, 13]))
+		 ] end
+	}},
+       ?_assertEqual([],proper:module(msgpack_rpc_props))
+      ]
+     }}.
+ 
+benchmark_test_()->
+    {setup, fun setup/0, fun teardown/1,
+     [
+      {"benchmark in serial",
+       fun()->
+	       {ok, C} = msgpack_rpc_client:connect(tcp, "localhost", ?TESTPORT, []),
+	       Data = generate_id_data(),
+	       S = msgpack:pack(Data),
+	       N = 1024,
+	       ?debugTime("serial call",
+			  [ {ok, _} = msgpack_rpc_client:call(C, id, [Data])
+			    || _ <- lists:seq(0, N)]),
+	       ?debugFmt(" for ~p RPCs of ~p B data.", [N, byte_size(S)]),
+	       msgpack_rpc_client:close(C)
+       end}
+     ]
+    }.
 
-
-map_test_()->
-    [
-        {"length 16",
-            fun() ->
-                    Map = {[ {X, X * 2} || X <- lists:seq(0, 16) ]},
-                    Binary = pack(Map),
-                    ?assertEqual({Map, <<>>}, unpack(Binary))
-            end},
-        {"length 32",
-            fun() ->
-                    Map = {[ {X, X * 2} || X <- lists:seq(0, 16#010000) ]},
-                    Binary = pack(Map),
-                    ?assertEqual({Map, <<>>}, unpack(Binary))
-            end},
-        {"empty",
-            fun() ->
-                    EmptyMap = {[]},
-                    Binary = pack(EmptyMap),
-                    ?assertEqual({EmptyMap, <<>>}, unpack(Binary))
-            end}
-    ].
-
-int_test_() ->
-    [
-        {"",
-            fun() ->
-                    Term = -2147483649,
-                    Binary = pack(Term),
-                    ?assertEqual({Term, <<>>}, unpack(Binary))
-            end}
-    ].
-
-error_test_()->
-    [
-        {"badarg atom",
-            ?_assertEqual({error, {badarg, atom}},
-                          pack(atom))},
-        {"badarg tuple",
-            fun() ->
-                    Term = {"hoge", "hage", atom},
-                    ?assertEqual({error, {badarg, Term}},
-                                 pack(Term))
-            end}
-    ].
-
-binary_test_() ->
-    [
-        {"0 byte",
-            fun() ->
-                    Binary = pack(<<>>),
-                    ?assertEqual({<<>>, <<>>}, unpack(Binary))
-            end}
-    ].
-
-%% long_binary_test_()->
-%%     [
-%%         {"long binary",
-%%             fun() ->
-%%                     A = pack(1),
-%%                     B = pack(10),
-%%                     C = pack(100),
-%%                     ?assertEqual({[1,10,100], <<>>},
-%%                                  unpack(list_to_binary([A, B, C])))
-%%             end}
-%%     ].
-
-%% benchmark_test()->
-%%     Data = [test_data() || _ <- lists:seq(0, 10000)],
-%%     {ok, S} = ?debugTime("  serialize", pack(Data)),
-%%     {ok, Data} = ?debugTime("deserialize", unpack(S)),
-%%     ?debugFmt("for ~p KB test data.", [byte_size(S) div 1024]),
-%%     ok.
+% 16 * 16 parallel
+parallel_benchmark_test_()->
+    {setup, fun setup/0, fun teardown/1,
+     [{inparallel,
+	[fun()->
+		 {ok, C} = msgpack_rpc_client:connect(tcp, "localhost", ?TESTPORT, []),
+		 Data = generate_id_data(),
+		 N = 256,
+		 BenchFun = fun()->
+				    [{ok, _} = msgpack_rpc_client:call(C, id, [Data])
+				     || _ <- lists:seq(0, N)]
+			    end,
+		 {Time, _} = timer:tc(BenchFun),
+		 msgpack_rpc_client:close(C),
+		 ?debugFmt("~p ms for ~p RPCs", [Time / 1000, N]),
+		 ok
+	 end
+	 || _ <- lists:seq(0, 16) ]
+      }]
+    }.
