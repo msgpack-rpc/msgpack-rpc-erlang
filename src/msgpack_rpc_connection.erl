@@ -42,7 +42,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Argv) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Argv, [{debug, [log,trace]}]).
+    gen_server:start_link(?MODULE, Argv, [{debug, [log,trace]}]).
 
 %%%===================================================================
 %%% gen_server callbacks
