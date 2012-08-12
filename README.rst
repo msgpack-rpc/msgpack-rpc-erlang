@@ -1,6 +1,15 @@
 MessagePack-RPC Erlang
 ======================
 
+master:
+
+.. image:: https://secure.travis-ci.org/kuenishi/msgpack-rpc-erlang.png
+
+develop:
+
+.. image:: https://secure.travis-ci.org/kuenishi/msgpack-rpc-erlang.png?branch=develop
+
+
 This code is in alpha-release. Synchronous RPC seems working.
 
 - prequisites for runtime
