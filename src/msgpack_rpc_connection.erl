@@ -152,10 +152,13 @@ handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Se
     ok=Transport:setopts(Socket, [{active,once}]),
 
     case msgpack:unpack(NewBuffer) of
-	{error, imcomplete} -> 
+	{error, incomplete} ->
 	    {noreply, State#state{buffer=NewBuffer}};
 	{error, {badarg, Reason}} ->
 	    {stop, {error, Reason}, State};
+	{error, Reason} ->
+	    ?debugVal({error, Reason}),
+	    {noreply, State#state{buffer=NewBuffer}};
 	{Term, Remain} ->
 	    [?MP_TYPE_RESPONSE, CallID, ResCode, Result] = Term,
 	    Retval = case ResCode of nil ->   {ok, Result};
