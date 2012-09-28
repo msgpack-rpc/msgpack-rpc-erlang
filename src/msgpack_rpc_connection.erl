@@ -60,7 +60,7 @@ start_link(Argv) ->
 %% @end
 %%--------------------------------------------------------------------
 init(Argv) ->
-    Transport = proplists:get_value(transport, Argv, cowboy_tcp_transport),
+    Transport = proplists:get_value(transport, Argv, ranch_tcp),
     IP   = proplists:get_value(ipaddr, Argv, localhost),
     Port = proplists:get_value(port,   Argv, 9199),
     Opts = proplists:get_value(opts,   Argv, [binary,{packet,raw},{active,once}]),
@@ -146,7 +146,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 
-    % when transport=cowboy_tcp_transport, other 
+
 handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Sessions0, buffer=Buf}) ->
     NewBuffer = <<Buf/binary, Binary/binary>>,
     ok=Transport:setopts(Socket, [{active,once}]),

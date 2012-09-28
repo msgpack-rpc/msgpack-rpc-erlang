@@ -21,12 +21,7 @@
 	  listener :: pid(),
 	  socket :: inet:socket(),
 	  transport :: module(),
-	  %% dispatch :: cowboy_dispatcher:dispatch_rules(),
 	  handler :: {module(), any()},
-	  %% onrequest :: undefined | fun((#http_req{}) -> #http_req{}),
-	  %% onresponse = undefined :: undefined | fun((cowboy_http:status(),
-	  %% 					     cowboy_http:headers(), #http_req{}) -> #http_req{}),
-	  %% urldecode :: {fun((binary(), T) -> binary()), T},
 	  req_keepalive = 1 :: integer(),
 	  max_keepalive :: integer(),
 	  max_line_length :: integer(),
@@ -166,12 +161,9 @@ binary2known_error(Term) -> Term.
 
 start_stop_test()->
     ok = application:start(ranch),
-    ok = application:start(cowboy),
     {ok, _} = ranch:start_listener(testlistener, 3,
 				    ranch_tcp, [{port, 9199}],
 				    msgpack_rpc_protocol, [{module, dummy}]),
-    ok = cowboy:stop_listener(testlistener),
-    ok = application:stop(ranch),
-    ok = application:stop(cowboy).
+    ok = application:stop(ranch).
 
 -endif.

@@ -49,7 +49,17 @@ Implement a module with functions exported. see ``test/msgpack_rpc_test.erl`` .
 
     ok = application:start(cowboy),
     {ok, _} = cowboy:start_listener(testlistener, 3,
-                                    cowboy_tcp_transport, [{port, 9199}],
+                                    ranch_tcp, [{port, 9199}],
+                                    msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
+
+
+Instead SSL is also available:
+
+::
+
+    ok = application:start(cowboy),
+    {ok, _} = cowboy:start_listener(testlistener, 3,
+                                    ranch_ssl, [{port, 9199}],
                                     msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
 
 
@@ -67,7 +77,7 @@ TODO
 - crosslang test
 - coverage 100%
 - UDS transport
-- SCTP/SSL/zip and more transport ...
+- SCTP/zip and more transport ...
 - rewrite tutorial and README
 - release handling (/release/*.appup)
 - full-spec type/spec notation

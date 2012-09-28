@@ -1,12 +1,8 @@
 {application, msgpack_rpc,
  [{description, "MessagePack RPC client/server suite"},
-  {vsn, "0.0.4"},
+  {vsn, "0.0.6"},
   {modules, 
-   [gen_msgpack_rpc, gen_msgpack_rpc_srv,
-    msgpack_util,
-    mprc, mprc_tcp, mprc_udp,
-    mprs, mprs_tcp, mprs_udp
-   ]
+   [msgpack_rpc_client, msgpack_rpc_connection, msgpack_rpc_protocol]
   },
 %  {registered, []},
 %  {mod, {mp_server_app, []}},

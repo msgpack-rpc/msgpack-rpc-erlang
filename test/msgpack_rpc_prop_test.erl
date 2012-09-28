@@ -19,16 +19,14 @@ id(X) -> X.
 setup()->
 %    ?debugVal(setup),
     ok = application:start(ranch),
-    ok = application:start(cowboy),
     {ok, _} = ranch:start_listener(testlistener, 3,
-				    ranch_tcp, [{port, ?TESTPORT}],
-				    msgpack_rpc_protocol, [{module, ?MODULE}]),
+				   ranch_tcp, [{port, ?TESTPORT}],
+				   msgpack_rpc_protocol, [{module, ?MODULE}]),
     ok.
 
 teardown(_)->
 %    ?debugVal(teardown),
     ok = ranch:stop_listener(testlistener),
-    ok = application:stop(cowboy),
     ok = application:stop(ranch).
 
 generate_id_data()->
