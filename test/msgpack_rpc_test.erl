@@ -11,9 +11,10 @@ add(A, B)-> A+B.
     
 
 start_stop_test()->
+    ok = application:start(ranch),
     ok = application:start(cowboy),
-    {ok, _} = cowboy:start_listener(testlistener, 3,
-				    cowboy_tcp_transport, [{port, 9199}],
+    {ok, _} = ranch:start_listener(testlistener, 3,
+				    ranch_tcp, [{port, 9199}],
 				    msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
 
     {ok, Pid} = msgpack_rpc_client:connect(tcp, "localhost", 9199, []),
@@ -38,4 +39,5 @@ start_stop_test()->
     ok = msgpack_rpc_client:close(Pid),
 
     ok = cowboy:stop_listener(testlistener),
-    ok = application:stop(cowboy).
+    ok = application:stop(cowboy),
+    ok = application:stop(ranch).
