@@ -7,7 +7,7 @@
 %%% Created : 22 Jul 2012 by UENISHI Kota <kuenishi@gmail.com>
 %%%-------------------------------------------------------------------
 -module(msgpack_rpc_protocol).
--behaviour(cowboy_protocol).
+-behaviour(ranch_protocol).
 
 -export([start_link/4]). %% API.
 -export([init/4, parse_request/1]). %% FSM.
@@ -52,7 +52,7 @@ init(ListenerPid, Socket, Transport, Opts) ->
 	    error_logger:error_msg("no module defined"),
 	    {error, no_module_defined};
 	Module ->
-	    ok = cowboy:accept_ack(ListenerPid),
+	    ok = ranch:accept_ack(ListenerPid),
     	    ok = Transport:controlling_process(Socket, self()),
 	    % ok = Transport:setopts(Socket, [{active, once}]),
 
@@ -177,11 +177,13 @@ terminate(#state{socket=Socket, transport=Transport}) ->
 -ifdef(TEST).
 
 start_stop_test()->
+    ok = application:start(ranch),
     ok = application:start(cowboy),
-    {ok, _} = cowboy:start_listener(testlistener, 3,
-				    cowboy_tcp_transport, [{port, 9199}],
+    {ok, _} = ranch:start_listener(testlistener, 3,
+				    ranch_tcp, [{port, 9199}],
 				    msgpack_rpc_protocol, [{module, dummy}]),
     ok = cowboy:stop_listener(testlistener),
+    ok = application:stop(ranch),
     ok = application:stop(cowboy).
 
 -endif.
