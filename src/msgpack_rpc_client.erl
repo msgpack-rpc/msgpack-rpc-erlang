@@ -18,7 +18,8 @@
 -type argv()   :: [msgpack:msgpack_term()].
 -type callid() :: non_neg_integer().
 
--spec start_link(type(), inet:ip_address(), inet:port_number(), [proplists:property()]) -> {ok, pid()} | {error, any()}.
+-spec start_link(type(), inet:ip_address(), inet:port_number(), [proplists:property()]) ->
+			{ok, pid()} | {error, any()}.
 start_link(tcp, IP, Port, Opts)->
     msgpack_rpc_connection:start_link([{transport, ranch_tcp},
 				       {ipaddr, IP}, {port, Port}] ++ Opts);
@@ -29,7 +30,8 @@ start_link(ssl, IP, Port, Opts)->
 start_link(_Type, _IP, _Port, _Opts)->
     {error, no_transport}.
 
--spec connect(type(), inet:ip_address(), inet:port_number(), [proplists:property()]) -> {ok, pid()} | {error, any()}.
+-spec connect(type(), inet:ip_address(), inet:port_number(), [proplists:property()]) ->
+		     {ok, pid()} | {error, any()}.
 connect(Type, IP, Port, Opts)->
     start_link(Type, IP, Port, Opts).
 

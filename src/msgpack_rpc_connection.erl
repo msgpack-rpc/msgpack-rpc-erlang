@@ -34,13 +34,7 @@
 %%% API
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the server
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
+-spec start_link([term()]) -> {ok, pid()} | ignore | {error, Error::term()}.
 start_link(Argv) ->
     gen_server:start_link(?MODULE, Argv, [{debug, [trace,log]}]).
 
@@ -48,17 +42,8 @@ start_link(Argv) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Initializes the server
-%%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
-%% @end
-%%--------------------------------------------------------------------
+-spec init([term()]) -> {ok, #state{}} | {ok, #state{}, non_neg_integer()} |
+			ignore | {stop, term()}.
 init(Argv) ->
     Transport = proplists:get_value(transport, Argv, ranch_tcp),
 
@@ -77,20 +62,13 @@ init(Argv) ->
     ok = Transport:controlling_process(Socket, self()),
     {ok, #state{connection=Socket, transport=Transport}}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling call messages
-%%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+-spec handle_call(term(), From::term(), #state{}) ->
+			 {reply, Reply::term(), #state{}} |
+			 {reply, Reply::term(), #state{}, non_neg_integer()} |
+			 {noreply, #state{}} |
+			 {noreply, #state{}, non_neg_integer()} |
+			 {stop, Reason::term(), Reply::term(), #state{}} |
+			 {stop, Reason::term(), #state{}}.
 handle_call({call_async, Method, Argv}, _From,
 	    State = #state{connection=Socket, transport=Transport, session=Sessions, counter=Count}) ->
     CallID = Count,
@@ -125,16 +103,10 @@ handle_call(close, _From, State) ->
 handle_call(_Request, _From, State) ->
     {reply, {error, badevent}, State}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling cast messages
-%%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+-spec handle_cast(term(), #state{}) ->
+			 {noreply, Reply::term(), #state{}} |
+			 {noreply, Reply::term(), #state{}, non_neg_integer()} |
+			 {stop, Reason::term(), #state{}}.
 handle_cast({notify, Method, Argv}, State = #state{connection=Socket, transport=Transport}) ->
 
     Binary = msgpack:pack([?MP_TYPE_NOTIFY, Method, Argv]),
@@ -144,17 +116,12 @@ handle_cast({notify, Method, Argv}, State = #state{connection=Socket, transport=
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
 %% @doc
 %% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
-
+-spec handle_info(term(), #state{}) ->
+			 {noreply, Reply::term(), #state{}} |
+			 {noreply, Reply::term(), #state{}, non_neg_integer()} |
+			 {stop, Reason::term(), #state{}}.
 
 handle_info({TCP_or_SSL, Socket, Binary},
 	    State = #state{transport=Transport,session=Sessions0, buffer=Buf})
@@ -196,17 +163,12 @@ handle_info(_Info, State = #state{connection=Socket,transport=Transport}) ->
     ok=Transport:setopts(Socket, [{active,once}]),
     {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
 %% @doc
 %% This function is called by a gen_server when it is about to
 %% terminate. It should be the opposite of Module:init/1 and do any
 %% necessary cleaning up. When it returns, the gen_server terminates
 %% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
-%% @end
-%%--------------------------------------------------------------------
+-spec terminate(term(), #state{}) -> ok. % void().
 terminate(_Reason, _State = #state{connection=Socket, transport=Transport}) ->
     Transport:close(Socket),
     ok.
@@ -221,7 +183,3 @@ terminate(_Reason, _State = #state{connection=Socket, transport=Transport}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
