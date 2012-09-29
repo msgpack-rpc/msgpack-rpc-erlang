@@ -47,20 +47,19 @@ Implement a module with functions exported. see ``test/msgpack_rpc_test.erl`` .
 
 ::
 
-    ok = application:start(cowboy),
-    {ok, _} = cowboy:start_listener(testlistener, 3,
-                                    ranch_tcp, [{port, 9199}],
-                                    msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
+    ok = application:start(ranch),
+    {ok, _} = msgpack_rpc_server:start(testlistener, tcp, msgpack_rpc_test, [{port,9199}]),
 
 
 Instead SSL is also available:
 
 ::
 
-    ok = application:start(cowboy),
-    {ok, _} = cowboy:start_listener(testlistener, 3,
-                                    ranch_ssl, [{port, 9199}],
-                                    msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
+    ok = application:start(crypto),
+    ok = application:start(ssl),
+    ok = application:start(ranch),
+    {ok, _} = msgpack_rpc_server:start(testlistener, ssl, msgpack_rpc_test,
+                                       [{port,9199}, {certfile, "foo.pem"}, {keyfile, "bar.pem"}]),
 
 
 License
@@ -72,12 +71,9 @@ TODO
 ----
 
 - session TIMEOUTs for client and server
-- error handling 
--- what if happens when badarg/noproc/bad_clause, and exceptions.
+- error handling -- what if happens when badarg/noproc/bad_clause, and exceptions.
 - crosslang test
-- coverage 100%
-- UDS transport
-- SCTP/zip and more transport ...
+- UDS, SCTP/zip and more transport ...
 - rewrite tutorial and README
 - release handling (/release/*.appup)
 - full-spec type/spec notation

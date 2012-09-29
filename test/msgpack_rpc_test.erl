@@ -12,9 +12,7 @@ add(A, B)-> A+B.
 
 start_stop_test()->
     ok = application:start(ranch),
-    {ok, _} = ranch:start_listener(testlistener, 3,
-				   ranch_tcp, [{port, 9199}],
-				   msgpack_rpc_protocol, [{module, msgpack_rpc_test}]),
+    {ok, _} = msgpack_rpc_server:start(testlistener, 3, tcp, msgpack_rpc_test, [{port, 9199}]),
     
     {ok, Pid} = msgpack_rpc_client:connect(tcp, "localhost", 9199, []),
     Reply = msgpack_rpc_client:call(Pid, hello, [<<"hello">>]),
@@ -37,5 +35,5 @@ start_stop_test()->
 
     ok = msgpack_rpc_client:close(Pid),
 
-    ok = ranch:stop_listener(testlistener),
+    ok = msgpack_rpc_server:stop(testlistener),
     ok = application:stop(ranch).

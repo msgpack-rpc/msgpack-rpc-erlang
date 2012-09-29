@@ -63,6 +63,12 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 			  timeout=T, buffer=Buffer}) ->
     ok = Transport:setopts(Socket, [{active, once}]),
     receive
+	{ssl, Socket, Data} ->
+	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
+
+	{ssl_closed, Socket}->
+	    terminate(State);
+
 	{tcp, Socket, Data} ->
 	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
 	{tcp_error, Socket, _Reason} ->
@@ -73,13 +79,6 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 	{reply, Binary}->
 	    ok = Transport:send(Socket, Binary),
 	    wait_request(State);
-
-	{ssl, Socket, Data} ->
-	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
-
-	{ssl_closed, Socket}->
-	    ?debugVal(Socket),
-	    terminate(State);
 
 	Other ->
 	    ?debugVal(Other),
@@ -154,8 +153,7 @@ spawn_request_handler(CallID, Module, M, Argv)->
 
 -spec terminate(#state{}) -> ok.
 terminate(#state{socket=Socket, transport=Transport}) ->
-	Transport:close(Socket),
-	ok.
+	Transport:close(Socket).
 
 -spec error2binary(atom())->binary().
 error2binary(undef) -> <<"undef">>.

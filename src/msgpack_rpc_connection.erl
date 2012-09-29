@@ -42,7 +42,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Argv) ->
-    gen_server:start_link(?MODULE, Argv, [{debug, [log,trace]}]).
+    gen_server:start_link(?MODULE, Argv, [{debug, [trace,log]}]).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -61,7 +61,7 @@ start_link(Argv) ->
 %%--------------------------------------------------------------------
 init(Argv) ->
     Transport = proplists:get_value(transport, Argv, ranch_tcp),
-    %?debugVal(Argv),
+
     Opts = case Transport of
 	       ranch_tcp -> [binary,{packet,raw},{active,once}];
 	       ranch_ssl ->
@@ -156,7 +156,11 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 
 
-handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Sessions0, buffer=Buf}) ->
+handle_info({TCP_or_SSL, Socket, Binary},
+	    State = #state{transport=Transport,session=Sessions0, buffer=Buf})
+
+  when TCP_or_SSL =:= tcp orelse TCP_or_SSL =:= ssl -> % this guard is quickhack; FIXME
+
     NewBuffer = <<Buf/binary, Binary/binary>>,
     ok=Transport:setopts(Socket, [{active,once}]),
 
@@ -188,6 +192,7 @@ handle_info({tcp, Socket, Binary}, State = #state{transport=Transport,session=Se
 
 handle_info(_Info, State = #state{connection=Socket,transport=Transport}) ->
     ?debugVal(_Info),
+    %error_logger:error_msg("error: ~p~n", [Reason]),
     ok=Transport:setopts(Socket, [{active,once}]),
     {noreply, State}.
 
