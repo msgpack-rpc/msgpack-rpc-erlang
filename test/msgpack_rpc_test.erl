@@ -36,4 +36,6 @@ start_stop_test()->
     {error, undef} = msgpack_rpc_client:call(Pid, imaginary, []),
 
     ok = msgpack_rpc_client:close(Pid),
+
+    ok = ranch:stop_listener(testlistener),
     ok = application:stop(ranch).

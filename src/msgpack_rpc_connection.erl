@@ -61,9 +61,18 @@ start_link(Argv) ->
 %%--------------------------------------------------------------------
 init(Argv) ->
     Transport = proplists:get_value(transport, Argv, ranch_tcp),
+    %?debugVal(Argv),
+    Opts = case Transport of
+	       ranch_tcp -> [binary,{packet,raw},{active,once}];
+	       ranch_ssl ->
+		   CertFile = proplists:get_value(certfile, Argv),
+		   KeyFile = proplists:get_value(keyfile, Argv),
+		   [binary, {packet, raw}, {active, once},
+		    {certfile, CertFile}, {keyfile, KeyFile}]
+	   end,
     IP   = proplists:get_value(ipaddr, Argv, localhost),
     Port = proplists:get_value(port,   Argv, 9199),
-    Opts = proplists:get_value(opts,   Argv, [binary,{packet,raw},{active,once}]),
+    %?debugVal(Opts),
     {ok, Socket} = Transport:connect(IP, Port, Opts),
     ok = Transport:controlling_process(Socket, self()),
     {ok, #state{connection=Socket, transport=Transport}}.

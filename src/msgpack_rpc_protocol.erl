@@ -74,6 +74,13 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 	    ok = Transport:send(Socket, Binary),
 	    wait_request(State);
 
+	{ssl, Socket, Data} ->
+	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
+
+	{ssl_closed, Socket}->
+	    ?debugVal(Socket),
+	    terminate(State);
+
 	Other ->
 	    ?debugVal(Other),
 	    wait_request(State)
