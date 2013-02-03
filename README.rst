@@ -1,20 +1,11 @@
 MessagePack-RPC Erlang
 ======================
 
-master:
-
-.. image:: https://secure.travis-ci.org/kuenishi/msgpack-rpc-erlang.png
-
-This code is in alpha-release. Synchronous RPC seems working.
+.. image:: https://secure.travis-ci.org/msgpack-rpc/msgpack-rpc-erlang.png
 
 - prequisites for runtime
 
-Erlang runtime system (http://erlang.org/)
-
-- prequisites for build and test
-
-GNU Make, Erlang, (optional)MessagePack-RPC/C++
-
+Erlang runtime system (http://erlang.org/ ) >= R15B0x
 
 build
 -----
@@ -69,7 +60,6 @@ TODO
 - error handling -- what if happens when badarg/noproc/bad_clause, and exceptions.
 - crosslang test
 - UDS, SCTP/zip and more transport ...
-- rewrite tutorial and README
 - release handling (/release/*.appup)
 - full-spec type/spec notation
 - longrun test
