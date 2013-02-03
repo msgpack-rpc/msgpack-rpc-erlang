@@ -131,7 +131,7 @@ handle_info({TCP_or_SSL, Socket, Binary},
     NewBuffer = <<Buf/binary, Binary/binary>>,
     ok=Transport:setopts(Socket, [{active,once}]),
 
-    case msgpack:unpack(NewBuffer) of
+    case msgpack:unpack_stream(NewBuffer) of
 	{error, incomplete} ->
 	    {noreply, State#state{buffer=NewBuffer}};
 	{error, {badarg, Reason}} ->

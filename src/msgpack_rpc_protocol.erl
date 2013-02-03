@@ -94,7 +94,7 @@ wait_request(State=#state{socket=Socket, transport=Transport,
     end.
 
 parse_request(State=#state{buffer=Buffer, module=Module}) ->
-    case msgpack:unpack(Buffer) of
+    case msgpack:unpack_stream(Buffer) of
 	{[?MP_TYPE_REQUEST,CallID,M,Argv], Remain} ->
 	    spawn_request_handler(CallID, Module, M, Argv),
 	    parse_request(State#state{buffer=Remain});
