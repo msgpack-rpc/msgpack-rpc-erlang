@@ -36,7 +36,7 @@
 
 -spec start_link([term()]) -> {ok, pid()} | ignore | {error, Error::term()}.
 start_link(Argv) ->
-    gen_server:start_link(?MODULE, Argv, [{debug, [trace,log]}]).
+    gen_server:start_link(?MODULE, Argv, []).
 
 %%%===================================================================
 %%% gen_server callbacks

@@ -133,13 +133,13 @@ spawn_request_handler(CallID, Module, M, Argv)->
 		    Pid ! {reply, msgpack:pack(Prefix ++ [nil, Result])}
 		catch
 		    error:Reason ->
-			error_logger:error_msg("no such method: ~p", [Method]),
+			error_logger:error_msg("no such method: ~p / ~p", [Method, Reason]),
 			ReplyBin = msgpack:pack(Prefix ++ [error2binary(Reason), nil]),
 			Pid ! {reply, ReplyBin};
 
 		    Class:Throw ->
 			Error = lists:flatten(io_lib:format("~p:~p", [Class, Throw])),
-			error_logger:error_msg("(~p)~p", [self(), Error]),
+			error_logger:error_msg("(~p)~s", [self(), Error]),
 			case msgpack:pack(Prefix ++ [Error, nil]) of
 			    {error, Reason} -> 
 				?debugVal(Reason),
@@ -156,7 +156,8 @@ terminate(#state{socket=Socket, transport=Transport}) ->
 	Transport:close(Socket).
 
 -spec error2binary(atom())->binary().
-error2binary(undef) -> <<"undef">>.
+error2binary(undef) -> <<"undef">>;
+error2binary(function_clause) -> <<"function_clause">>.
 
 -spec binary2known_error(term())->atom() | term().
 binary2known_error(<<"undef">>)->undef;
