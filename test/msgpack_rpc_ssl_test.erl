@@ -11,7 +11,8 @@ add(A, B)-> A+B.
     
 
 start_stop_test()->
-%    ok = application:start(crypto),
+    % ok = application:start(crypto),
+    ok = application:start(asn1),
     ok = application:start(public_key),
     ok = application:start(ssl),
 
