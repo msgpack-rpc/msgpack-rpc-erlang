@@ -63,93 +63,93 @@ wait_request(State=#state{socket=Socket, transport=Transport,
 			  timeout=T, buffer=Buffer}) ->
     ok = Transport:setopts(Socket, [{active, once}]),
     receive
-	{ssl, Socket, Data} ->
-	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
+        {ssl, Socket, Data} ->
+            parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
 
-	{ssl_closed, Socket}->
-	    terminate(State);
+        {ssl_closed, Socket}->
+            terminate(State);
 
-	{tcp, Socket, Data} ->
-	    parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
-	{tcp_error, Socket, _Reason} ->
-	    terminate(State);
-	{tcp_closed, Socket} ->
-	    terminate(State);
+        {tcp, Socket, Data} ->
+            parse_request(State#state{buffer= << Buffer/binary, Data/binary >>});
+        {tcp_error, Socket, _Reason} ->
+            terminate(State);
+        {tcp_closed, Socket} ->
+            terminate(State);
 
-	{reply, Binary}->
-	    ok = Transport:send(Socket, Binary),
-	    wait_request(State);
+        {reply, Binary}->
+            ok = Transport:send(Socket, Binary),
+            wait_request(State);
 
-	Other ->
-	    ?debugVal(Other),
-	    wait_request(State)
+        Other ->
+            ?debugVal(Other),
+            wait_request(State)
 
     after T ->
-	    case byte_size(Buffer) > 0 of
-		true -> % there's something incomplete
-		    terminate(State);
-		false ->
-		    wait_request(State)
-	    end
+            case byte_size(Buffer) > 0 of
+                true -> % there's something incomplete
+                    terminate(State);
+                false ->
+                    wait_request(State)
+            end
     end.
 
 parse_request(State=#state{buffer=Buffer, module=Module}) ->
     case msgpack:unpack_stream(Buffer) of
-	{[?MP_TYPE_REQUEST,CallID,M,Argv], Remain} ->
-	    spawn_request_handler(CallID, Module, M, Argv),
-	    parse_request(State#state{buffer=Remain});
-	{[?MP_TYPE_NOTIFY,M,Argv], Remain} ->
-	    spawn_notify_handler(Module, M, Argv),
-	    parse_request(State#state{buffer=Remain});
-	{error, incomplete} ->
-	    wait_request(State);
-	{error, Reason} ->
-	    ?debugVal(Reason),
-	    error_logger:error_msg("error: ~p~n", [Reason]),
-	    terminate(State)
+        {[?MP_TYPE_REQUEST,CallID,M,Argv], Remain} ->
+            spawn_request_handler(CallID, Module, M, Argv),
+            parse_request(State#state{buffer=Remain});
+        {[?MP_TYPE_NOTIFY,M,Argv], Remain} ->
+            spawn_notify_handler(Module, M, Argv),
+            parse_request(State#state{buffer=Remain});
+        {error, incomplete} ->
+            wait_request(State);
+        {error, Reason} ->
+            ?debugVal(Reason),
+            error_logger:error_msg("error: ~p~n", [Reason]),
+            terminate(State)
     end.
 
-spawn_notify_handler(Module, M, Argv)->
+spawn_notify_handler(Module, M, Argv)                     ->
     spawn(fun()->
-		  Method = binary_to_existing_atom(M, latin1),
-		  try
-		      erlang:apply(Module, Method, Argv)
-		  catch
-		      Class:Throw ->
-			  ?debugVal({Method, Throw}),
-			  error_logger:error_msg("~p ~p:~p", [?LINE, Class, Throw])
-		  end
-	  end).
+                  Method = binary_to_existing_atom(M, latin1),
+                  try
+                      erlang:apply(Module, Method, Argv)
+                  catch
+                      Class:Throw ->
+                          ?debugVal({Method, Throw}),
+                          error_logger:error_msg("~p ~p:~p", [?LINE, Class, Throw])
+                  end
+          end).
 
 spawn_request_handler(CallID, Module, M, Argv)->
     Pid = self(),
     F = fun()->
-		Method = binary_to_existing_atom(M, latin1),
-		Prefix = [?MP_TYPE_RESPONSE, CallID],
-		try
-		    Result = erlang:apply(Module,Method,Argv),
-		    %% ?debugVal({Method, Argv}),
-		    %% ?debugVal(Result),
-		    Pid ! {reply, msgpack:pack(Prefix ++ [nil, Result])}
-		catch
-		    error:Reason ->
-			error_logger:error_msg("no such method: ~p / ~p", [Method, Reason]),
-			ReplyBin = msgpack:pack(Prefix ++ [error2binary(Reason), nil]),
-			Pid ! {reply, ReplyBin};
+                Method = binary_to_existing_atom(M, latin1),
+                Prefix = [?MP_TYPE_RESPONSE, CallID],
+                try
+                    Result = erlang:apply(Module,Method,Argv),
+                    %% ?debugVal({Method, Argv}),
+                    %% ?debugVal(Result),
+                    Pid ! {reply, msgpack:pack(Prefix ++ [nil, Result])}
+                catch
+                    error:Reason ->
+                        error_logger:error_msg("no such method: ~p / ~p", [Method, Reason]),
+                        ReplyBin = msgpack:pack(Prefix ++ [error2binary(Reason), nil]),
+                        Pid ! {reply, ReplyBin};
 
-		    Class:Throw ->
-			Error = lists:flatten(io_lib:format("~p:~p", [Class, Throw])),
-			error_logger:error_msg("(~p)~s", [self(), Error]),
-			case msgpack:pack(Prefix ++ [Error, nil]) of
-			    {error, Reason} -> 
-				?debugVal(Reason),
-				Pid ! {reply, ["internal error", nil]};
-			    Binary when is_binary(Binary) ->
-				Pid ! {reply, Binary}
-			end
-		end
-	end,
-    spawn(F).
+                    Class:Throw ->
+                        Error = lists:flatten(io_lib:format("~p:~p", [Class, Throw])),
+                        error_logger:error_msg("(~p)~s", [self(), Error]),
+                        case msgpack:pack(Prefix ++ [Error, nil]) of
+                            {error, Reason} ->
+                                ?debugVal(Reason),
+                                Pid ! {reply, ["internal error", nil]};
+                            Binary when is_binary(Binary) ->
+                                Pid ! {reply, Binary}
+                        end
+                end
+        end,
+    spawn_link(F).
 
 -spec terminate(#state{}) -> ok.
 terminate(#state{socket=Socket, transport=Transport}) ->
@@ -168,8 +168,8 @@ binary2known_error(Term) -> Term.
 start_stop_test()->
     ok = application:start(ranch),
     {ok, _} = ranch:start_listener(testlistener, 3,
-				    ranch_tcp, [{port, 9199}],
-				    msgpack_rpc_protocol, [{module, dummy}]),
+                                   ranch_tcp, [{port, 9199}],
+                                   msgpack_rpc_protocol, [{module, dummy}]),
     ok = application:stop(ranch).
 
 -endif.
