@@ -124,6 +124,7 @@ spawn_notify_handler(Module, M, Argv)                     ->
 spawn_request_handler(CallID, Module, M, Argv)->
     Pid = self(),
     F = fun()->
+                Ref = erlang:monitor(process, Pid),
                 Method = binary_to_existing_atom(M, latin1),
                 Prefix = [?MP_TYPE_RESPONSE, CallID],
                 try
@@ -147,9 +148,10 @@ spawn_request_handler(CallID, Module, M, Argv)->
                             Binary when is_binary(Binary) ->
                                 Pid ! {reply, Binary}
                         end
-                end
+                end,
+                erlang:demonitor(Ref)
         end,
-    spawn_link(F).
+    spawn(F).
 
 -spec terminate(#state{}) -> ok.
 terminate(#state{socket=Socket, transport=Transport}) ->

@@ -157,6 +157,8 @@ handle_info({TCP_or_SSL, Socket, Binary},
             end
     end;
 
+handle_info({tcp_closed, Socket}, State = #state{connection=Socket}) ->
+    {stop, unexpected_close, State};
 handle_info(_Info, State = #state{connection=Socket,transport=Transport}) ->
     ?debugVal(_Info),
     ok=Transport:setopts(Socket, [{active,once}]),
