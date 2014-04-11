@@ -12,6 +12,7 @@ add(A, B)-> A+B.
 
 start_stop_test()->
 %    ok = application:start(crypto),
+    ok = application:start(asn1),
     ok = application:start(public_key),
     ok = application:start(ssl),
 
@@ -47,8 +48,8 @@ start_stop_test()->
 
     ok = msgpack_rpc_server:stop(testlistener2),
     ok = application:stop(ranch),
-
     ok = application:stop(ssl),
-    ok = application:stop(public_key).
+    ok = application:stop(public_key),
+    ok = application:stop(asn1).
 %    ok = application:stop(crypto).
 
