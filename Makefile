@@ -1,6 +1,7 @@
 .PHONY: compile xref eunit clean doc check make deps test
 
-all: compile xref eunit
+all: compile xref
+test: eunit
 
 # for busy typos
 m: all
