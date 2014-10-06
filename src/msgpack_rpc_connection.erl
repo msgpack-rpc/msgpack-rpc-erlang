@@ -91,7 +91,7 @@ handle_call({join, CallID}, From, State = #state{session=Sessions0}) ->
             {reply, {error, waiting}, State};
 	    
         {value, {CallID, {waiting, From1}}, Sessions1} -> % overwrite
-            {noreply, State#state{session=[{CallID, {wairing, From1}}|Sessions1]}};
+            {noreply, State#state{session=[{CallID, {waiting, From1}}|Sessions1]}};
         
         _ -> % unexpected error
             {noreply, State}
